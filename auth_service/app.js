@@ -1,6 +1,9 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+
 const authRoutes = require("./routes/auth.routes");
+
+const errorMiddleware = require("./middleware/error.middleware");
 
 require("dotenv").config();
 
@@ -31,6 +34,7 @@ app.get("/", (req, res) => {
 // });
 
 app.use("/", authRoutes);
+app.use(errorMiddleware);
 
 app.listen(PORT, () => {
   console.log(`Running on port ${PORT}`);
