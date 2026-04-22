@@ -16,5 +16,8 @@ coverage/
 logs
 *.log
 
+#DB
+*/prisma
+
 # OS files
 .DS_Store
