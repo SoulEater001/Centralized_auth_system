@@ -1,6 +1,8 @@
 const express = require("express");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const rateLimit = require("express-rate-limit");
+const { RedisStore } = require("rate-limit-redis");
+const redisClient = require("./utils/redis");
 
 require("dotenv").config();
 
@@ -13,8 +15,11 @@ app.use((req, res, next) => {
 });
 
 const globalLimiter = rateLimit({
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+  }),
   windowMs: 60 * 1000, // 1 minute
-  max: 100,            // 100 requests per minute per IP
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -22,8 +27,11 @@ const globalLimiter = rateLimit({
 app.use(globalLimiter);
 
 const authLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 min
-  max: 5,              // 5 login attempts/min
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+  }),
+  windowMs: 60 * 1000, //1 minute
+  max: 5,
   message: { message: "Too many login attempts, try later" },
 });
 
