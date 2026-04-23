@@ -111,7 +111,7 @@ orders:delete
 - PostgreSQL (Prisma ORM)
 - Redis
 - JWT (jsonwebtoken)
-- Docker (optional)
+- Docker & Docker Compose
 
 ---
 
@@ -133,7 +133,7 @@ centralized-auth-system/
 ### 1. Clone repo
 
 ```
-git clone <repo-url>
+git clone https://github.com/SoulEater001/Centralized_auth_system.git
 cd centralized-auth-system
 ```
 
@@ -150,42 +150,130 @@ cd ../api-gateway && npm install
 Create `.env` in each service:
 
 #### Auth Service
-
+##### Local development
+```
+REDIS_URL=redis://localhost:6379
+DATABASE_URL=postgresql://postgres:password@localhost:5432/auth_db
+```
+##### Docker 
 ```
 PORT=3001
-DATABASE_URL=postgresql://postgres:password@localhost:5432/auth_db
+Local development
+DATABASE_URL=postgresql://postgres:password@postgres:5432/auth_db
 JWT_SECRET=supersecret
 JWT_REFRESH_SECRET=refresh_secret
+REDIS_URL=redis://redis:6379
 ```
 
 #### Orders Service
-
+##### Local development
+```
+REDIS_URL=redis://localhost:6379
+```
+##### Docker 
 ```
 PORT=3002
 JWT_SECRET=supersecret
 JWT_REFRESH_SECRET=refresh_secret
+REDIS_URL=redis://redis:6379
 ```
 
 #### API Gateway
-
+##### Local development
+```
+REDIS_URL=redis://localhost:6379
+```
+##### Docker
 ```
 PORT=3000
 JWT_SECRET=supersecret
 JWT_REFRESH_SECRET=refresh_secret
+REDIS_URL=redis://redis:6379
+AUTH_SERVICE_URL=http://auth_service:3001
+ORDERS_SERVICE_URL=http://orders_service:3002
 ```
 
 ---
-
 ### 4. Run services
 
 ```
-node auth-service/app.js
-node orders-service/app.js
-node api-gateway/app.js
+nodemon auth-service/app.js
+nodemon orders-service/app.js
+nodemon api-gateway/app.js
 ```
 
 ---
+## 🐳 Docker Setup  
+  
+This project can be run using Docker Compose, which starts all services including API Gateway, Auth Service, Orders Service, PostgreSQL, and Redis.  
+  
+---  
+### 📦 Prerequisites  
+  
+- Docker  
+- Docker Compose  
+  
+---  
+### ⚙️ Environment Setup (Docker)  
+  
+Each service requires a `.env.docker` file.  
+  
+You can create it by copying the example:
+```bash
+cp .env.docker.example .env.docker
+```
+Or manually create `.env.docker` using the provided example or referring to Docs.
 
+---
+### ⚙️ Setup  
+  
+1. Ensure `.env` files are configured for Docker:  
+- Use `postgres` as database host  
+- Use `redis` as Redis host  
+  
+2. Run the following command:
+- For first time :-
+```
+docker-compose up --build
+```
+- Later :-
+```
+docker-compose up
+```
+
+---
+### ❗ If you want `.env.docker`
+
+You MUST change it to:
+```YAML
+env_file:  
+  - ./auth-service/.env.docker
+```
+
+---  
+### 🌐 Services  
+
+| Service        | URL                   |     |
+| -------------- | --------------------- | --- |
+| API Gateway    | http://localhost:3000 |     |
+| Auth Service   | http://localhost:3001 |     |
+| Orders Service | http://localhost:3002 |     |
+
+---  
+### 🛑 Stop Containers
+
+```
+docker-compose down
+```
+
+---  
+### 🧠 Notes  
+
+- No need to run PostgreSQL or Redis locally  
+- Containers communicate using service names (`postgres`, `redis`)  
+- Prisma migrations run automatically when the Auth service starts
+
+---
 ## 🔐 Security Decisions
 
 - Password hashing using bcrypt
@@ -219,18 +307,14 @@ The API Gateway handles routing, rate limiting, and acts as a single entry point
 The system is split into independent services (Auth, Orders, Gateway), each with a single responsibility. Communication is handled via HTTP, ensuring loose coupling and scalability.
 
 ---
-
----
-
 ## ⭐ Bonus Features Implemented
 
 - Token revocation (Redis)
 - Rate limiting (Redis)
 - ABAC (ownership-based access)
 - Multi-role support
-
+- 
 ---
-
 ## 📡 API Endpoints
 
 ### 🔐 Auth Service
@@ -254,7 +338,6 @@ Response:
 ```
 
 ---
-
 #### POST /auth/refresh
 ```
 Request:  
@@ -271,7 +354,6 @@ Response:
 ```
 
 ---
-
 #### POST /auth/logout
 
 Headers:
@@ -294,7 +376,6 @@ Response:
 ```
 
 ---
-
 ### 📦 Orders Service
 
 #### GET /orders
@@ -306,9 +387,7 @@ Permission: `orders:read`
 Authorization: Bearer <accessToken>
 ```
 
-
 ---
-
 #### POST /orders
 
 Permission: `orders:write`
@@ -322,9 +401,7 @@ Authorization: Bearer <accessToken>
   "item": "Laptop"  
 }
 
-
 ---
-
 #### DELETE /orders/:id
 
 Permission: `orders:delete`
@@ -343,9 +420,6 @@ Authorization: Bearer <accessToken>
 - Refresh token rotation
 
 ---
-
-
-
 ## 📬 Author
 
 Shivam Kumar Dewangan

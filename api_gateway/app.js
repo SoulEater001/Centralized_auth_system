@@ -42,12 +42,12 @@ app.get("/test", (req, res) => {
 app.use("/auth/login", authLimiter);
 // Routes
 app.use("/auth", createProxyMiddleware({
-  target: "http://localhost:3001",
+  target: process.env.AUTH_SERVICE_URL,
   changeOrigin: true,
 }));
 
 app.use("/orders", createProxyMiddleware({
-  target: "http://localhost:3002",
+  target: process.env.ORDERS_SERVICE_URL,
   changeOrigin: true
 }));
 

@@ -30,6 +30,7 @@ exports.loginUser = async ({ email, password }) => {
   if (!user) {
     throw new Error("Invalid credentials");
   }
+  console.log("User found:", user);
 
   if (!user.isActive) {
     throw new Error("User is disabled");
@@ -37,7 +38,7 @@ exports.loginUser = async ({ email, password }) => {
 
   // 2. Check password
   const isValid = await bcrypt.compare(password, user.password);
-
+  console.log("Password match:", isValid);
   if (!isValid) {
     throw new Error("Invalid credentials");
   }
