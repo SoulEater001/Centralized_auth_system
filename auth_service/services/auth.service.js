@@ -2,6 +2,7 @@ const prisma = require("../utils/prisma");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const redis = require("../utils/redis");
+const crypto = require("crypto");
 
 require("dotenv").config();
 
@@ -59,52 +60,64 @@ exports.loginUser = async ({ email, password }) => {
     { expiresIn: "1h" }
   );
 
+  const sessionId = crypto.randomUUID();
   // Refresh Token (long-lived)
   const refreshToken = jwt.sign(
-    { userId: user.id },
+    { userId: user.id, sessionId },
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: "7d" }
   );
 
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
   // Store refresh token in Redis
-  await redis.set(`refresh:${user.id}`, refreshToken, {
+  await redis.set(`refresh:${user.id}:${sessionId}`, hashedToken, {
     EX: 7 * 24 * 60 * 60 // 7 days
   });
 
   return {
     accessToken,
-    refreshToken
+    refreshToken,
+    sessionId
   };
 };
 
-exports.logoutUser = async (token) => {
-  if (!token) {
-    throw new Error("No token provided");
+exports.logoutUser = async (accessToken, refreshToken) => {
+  if (!accessToken || !refreshToken) {
+    throw new Error("Tokens required");
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decodedAccess = jwt.verify(accessToken, process.env.JWT_SECRET);
+  const decodedRefresh = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-  if (!decoded || !decoded.exp) {
-    throw new Error("Invalid token");
+  if (decodedAccess.userId !== decodedRefresh.userId) {
+    throw new Error("Token mismatch");
+  }
+
+  const { userId } = decodedAccess;
+  const { sessionId } = decodedRefresh;
+
+  const stored = await redis.get(`refresh:${userId}:${sessionId}`);
+
+  if (!stored) {
+    throw new Error("Session not found");
   }
 
   // Delete refresh token
-  await redis.del(`refresh:${decoded.userId}`);
+  await redis.del(`refresh:${userId}:${sessionId}`);
 
   // Blacklist access token
   const expiry = Math.max(
-    decoded.exp - Math.floor(Date.now() / 1000),
+    decodedAccess.exp - Math.floor(Date.now() / 1000),
     0
   );
 
-  if (expiry <= 0) {
-    throw new Error("Token already expired");
+  if (expiry > 0) {
+    await redis.set(`blacklist:${accessToken}`, "1", { EX: expiry });
   }
-
-  // store in Redis blacklist
-  await redis.set(`blacklist:${token}`, "1", {
-    EX: expiry
-  });
 
   return { message: "Logged out successfully" };
 };
@@ -120,10 +133,16 @@ exports.refreshAccessToken = async (refreshToken) => {
     process.env.JWT_REFRESH_SECRET
   );
 
+  const { userId, sessionId } = decoded;
   // Check Redis
-  const stored = await redis.get(`refresh:${decoded.userId}`);
+  const stored = await redis.get(`refresh:${userId}:${sessionId}`);
 
-  if (!stored || stored.trim() !== refreshToken.trim()) {
+  const hashedIncoming = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
+  if (!stored || stored !== hashedIncoming) {
     throw new Error("Invalid refresh token");
   }
 

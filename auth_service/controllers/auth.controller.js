@@ -16,9 +16,10 @@ exports.login = async (req, res, next) => {
 
 exports.logout = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const accessToken = req.headers.authorization?.split(" ")[1];
+    const { refreshToken } = req.body;
 
-    const result = await authService.logoutUser(token);
+    const result = await authService.logoutUser(accessToken, refreshToken);
 
     res.json(result);
   } catch (error) {
