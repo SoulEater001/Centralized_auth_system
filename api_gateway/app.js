@@ -35,7 +35,7 @@ const authLimiter = rateLimit({
   message: { message: "Too many login attempts, try later" },
 });
 
-app.get("/", (req, res) => {
+app.get("/test", (req, res) => {
   res.send("Api Gateway is running");
 });
 

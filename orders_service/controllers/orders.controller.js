@@ -3,8 +3,7 @@ let orders = [];
 exports.getOrders = (req, res) => {
   // Admin sees everything
   const isPrivileged =
-  req.user.roles.includes("admin") ||
-  req.user.roles.includes("manager");
+  req.user.roles.includes("admin");
   if (isPrivileged) {
     return res.json(orders);
   }
@@ -49,5 +48,8 @@ exports.deleteOrder = (req, res) => {
 
   orders.splice(orderIndex, 1);
 
-  res.json({ message: "Order deleted" });
+  res.json({
+    message: "Order deleted",
+    deletedOrder: order
+  });
 };

@@ -11,7 +11,7 @@ const app = express();
 app.use(express.json());
 const PORT = process.env.PORT;
 
-app.get("/", (req, res) => {
+app.get("/test", (req, res) => {
   res.send("Auth Service is running");
 });
 
