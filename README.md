@@ -27,6 +27,14 @@ http://18.234.37.80:3000/auth/login
 
   
 > Note: All requests should be made via the API Gateway.
+### 📬 Postman Usage  
+You can test APIs using Postman by setting:  
+  
+- `base_url = http://localhost:3000` (local)  
+- `base_url = http://http://18.234.37.80:3000` (deployed)  
+  
+All endpoints are accessible via the API Gateway.
+
 ---
 ## 🏗️ Architecture
 ![Architecture](./docs/architecture.png)
