@@ -6,6 +6,8 @@ services:
     container_name: api_gateway
     ports:
       - "3000:3000"
+    volumes:
+      - ./api-gateway/logs:/app/logs
     depends_on:
       - auth_service
       - orders_service
@@ -29,6 +31,8 @@ services:
     container_name: orders_service
     ports:
       - "3002:3002"
+    volumes:
+      - ./orders-service/logs:/app/logs
     depends_on:
       - redis
     env_file:

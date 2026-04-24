@@ -15,6 +15,14 @@ const publicKey = fs.readFileSync(
   "utf8"
 );
 
+const logLogin = (data) => {
+  console.log(JSON.stringify({
+    event: "login_attempt",
+    ...data,
+    time: new Date().toISOString()
+  }));
+};
+
 require("dotenv").config();
 
 exports.loginUser = async ({ email, password }) => {
@@ -39,18 +47,32 @@ exports.loginUser = async ({ email, password }) => {
   });
 
   if (!user) {
+    logLogin({
+      email,
+      success: false,
+      reason: "user_not_found"
+    });
     throw new Error("Invalid credentials");
   }
-  console.log("User found:", user);
 
   if (!user.isActive) {
+    logLogin({
+      email,
+      success: false,
+      reason: "user_disabled"
+    });
     throw new Error("User is disabled");
   }
 
   // 2. Check password
   const isValid = await bcrypt.compare(password, user.password);
-  console.log("Password match:", isValid);
+
   if (!isValid) {
+    logLogin({
+      email,
+      success: false,
+      reason: "invalid_password"
+    });
     throw new Error("Invalid credentials");
   }
 
@@ -94,6 +116,12 @@ exports.loginUser = async ({ email, password }) => {
   // Store refresh token in Redis
   await redis.set(`refresh:${user.id}:${sessionId}`, hashedToken, {
     EX: 7 * 24 * 60 * 60 // 7 days
+  });
+  logLogin({
+    email,
+    userId: user.id,
+    success: true,
+    roles
   });
 
   return {

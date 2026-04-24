@@ -2,7 +2,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 
 const authRoutes = require("./routes/auth.routes");
-
+const { auditLogger } = require("./middleware/auditLogger");
 const errorMiddleware = require("./middleware/error.middleware");
 
 require("dotenv").config();
@@ -11,6 +11,7 @@ const app = express();
 app.use(express.json());
 const PORT = process.env.PORT;
 
+app.use(auditLogger);
 app.get("/test", (req, res) => {
   res.send("Auth Service is running");
 });

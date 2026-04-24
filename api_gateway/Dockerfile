@@ -7,6 +7,8 @@ RUN npm install
 
 COPY . .
 
+RUN mkdir -p /app/logs
+
 EXPOSE 3000
 
 CMD ["node", "app.js"]

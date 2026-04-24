@@ -1,6 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-
+const {auditLogger} = require("./middleware/auditLogger");
 const orderRoutes = require("./routes/orders.routes");
 
 require("dotenv").config();
@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 const PORT = process.env.PORT;
 
-
+app.use(auditLogger);
 // app.get("/", authenticate, authorize("orders:read"), (req, res) => {
   //   res.json([{ id: 1, item: "Laptop" }]);
   // });

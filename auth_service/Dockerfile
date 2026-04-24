@@ -8,6 +8,7 @@ RUN npm install
 RUN apt-get update -y && apt-get install -y openssl
 COPY . .
 
+RUN mkdir -p /app/logs
 RUN npx prisma generate
 
 EXPOSE 3001

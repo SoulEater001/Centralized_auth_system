@@ -18,7 +18,7 @@ exports.getOrders = (req, res) => {
 
 exports.createOrder = (req, res) => {
   const { item } = req.body;
-  console.log(item)
+
   const newOrder = {
     id: Date.now().toString(),
     item,

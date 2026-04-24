@@ -3,17 +3,19 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const rateLimit = require("express-rate-limit");
 const { RedisStore } = require("rate-limit-redis");
 const redisClient = require("./utils/redis");
+const {auditLogger} = require("./middleware/auditLogger");
 
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT
 
+app.use(auditLogger);
+
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
-
 const globalLimiter = rateLimit({
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
