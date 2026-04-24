@@ -2,7 +2,7 @@
 
 ## 🚀 Overview
 
-This project implements a **centralized authentication and authorization system** for a microservices architecture using **Node.js, JWT, PostgreSQL, and Redis**.
+This project implements a **centralized authentication and authorization system** for a microservices architecture using **Node.js, JWT, PostgreSQL, and Redis**. Designed with production-grade security practices including **RS256**-based JWT validation and distributed **rate limiting**.
 
 It demonstrates:
 
@@ -12,6 +12,21 @@ It demonstrates:
 - Token revocation using Redis
 - Rate limiting using Redis
 - API Gateway-based routing
+- 
+---
+## 🌐 Live Deployment  
+  
+The application is deployed and accessible at:  
+  
+- API Gateway: http://<your_server_ip>:3000  
+  
+### Example  
+
+http://18.234.37.80:3000/test (test URL)
+http://18.234.37.80:3000/auth/login
+
+  
+> Note: All requests should be made via the API Gateway.
 ---
 ## 🏗️ Architecture
 ![Architecture](./docs/architecture.png)
@@ -21,10 +36,9 @@ It demonstrates:
 
 ### 🔐 Authentication
 
-- JWT-based authentication
+- JWT authentication using RS256 (public/private key)
 - Short-lived access tokens (15 min)
 - Refresh tokens (7 days)
-- JWT-based validation using shared secret
 
 ### 🔑 Authorization (RBAC)
 
@@ -42,7 +56,7 @@ orders:delete
 
 ### 🧩 ABAC (Bonus)
 
-- Users can access only their own resources
+- Users can access or modify only their own resources (ownership-based access control)
 - Example: Non-admin users can access only their own resources, while admins can access all resources ✅
 
 ---
@@ -105,6 +119,19 @@ orders:delete
 - Redis-based distributed limiter
 
 ---
+## 🔄 Token Validation Strategy  
+  
+This system uses **RS256 (public/private key)** for JWT validation.  
+  
+- Auth Service signs tokens using a **private key**  
+- Resource services (e.g., Orders Service) verify tokens using a **public key**  
+  
+### 🔐 Benefits  
+  
+- No shared secrets across services  
+- Improved security in distributed systems  
+
+---
 ## 🧩 Tech Stack
 
 - Node.js + Express
@@ -118,10 +145,10 @@ orders:delete
 ## 📁 Project Structure
 
 ```
-centralized-auth-system/
-├── api-gateway/
-├── auth-service/
-├── orders-service/
+Centralized_auth_system/
+├── api_gateway/
+├── auth_service/
+├── orders_service/
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
@@ -134,15 +161,15 @@ centralized-auth-system/
 
 ```
 git clone https://github.com/SoulEater001/Centralized_auth_system.git
-cd centralized-auth-system
+cd centralized_auth_system
 ```
 
 ### 2. Install dependencies
 
 ```
-cd auth-service && npm install
-cd ../orders-service && npm install
-cd ../api-gateway && npm install
+cd auth_service && npm install
+cd ../orders_service && npm install
+cd ../api_gateway && npm install
 ```
 
 ### 3. Setup environment variables
@@ -152,54 +179,72 @@ Create `.env` in each service:
 #### Auth Service
 ##### Local development
 ```
+PORT=3001
 REDIS_URL=redis://localhost:6379
 DATABASE_URL=postgresql://postgres:password@localhost:5432/auth_db
 ```
 ##### Docker 
 ```
 PORT=3001
-Local development
 DATABASE_URL=postgresql://postgres:password@postgres:5432/auth_db
-JWT_SECRET=supersecret
-JWT_REFRESH_SECRET=refresh_secret
 REDIS_URL=redis://redis:6379
 ```
 
 #### Orders Service
 ##### Local development
 ```
+PORT=3002
 REDIS_URL=redis://localhost:6379
 ```
 ##### Docker 
 ```
 PORT=3002
-JWT_SECRET=supersecret
-JWT_REFRESH_SECRET=refresh_secret
 REDIS_URL=redis://redis:6379
 ```
 
 #### API Gateway
 ##### Local development
 ```
+PORT=3000
 REDIS_URL=redis://localhost:6379
+AUTH_SERVICE_URL=http://auth_service:3001
+ORDERS_SERVICE_URL=http://orders_service:3002
 ```
 ##### Docker
 ```
 PORT=3000
-JWT_SECRET=supersecret
-JWT_REFRESH_SECRET=refresh_secret
 REDIS_URL=redis://redis:6379
 AUTH_SERVICE_URL=http://auth_service:3001
 ORDERS_SERVICE_URL=http://orders_service:3002
 ```
 
 ---
-### 4. Run services
+### 4. RSA Key Generation  
+  
+This project uses **RS256 (public/private key)** for JWT authentication.  
+  
+Generate keys using:  
+  
+```bash  
+openssl genrsa -out private.key 2048  
+openssl rsa -in private.key -pubout -out public.key
+```
+#### 📁 Place Keys
+
+- `auth_service/keys/private.key` (used for signing)
+- `auth_service/keys/public.key`
+- `orders_service/keys/public.key`
+- `api_gateway/keys/public.key (optional, if validation is implemented)` 
+#### ⚠️ Important
+
+- Never expose `private.key`
+- Only `public.key` should be shared across services
+### 5. Run services
 
 ```
-nodemon auth-service/app.js
-nodemon orders-service/app.js
-nodemon api-gateway/app.js
+nodemon auth_service/app.js
+nodemon orders_service/app.js
+nodemon api_gateway/app.js
 ```
 
 ---
@@ -227,13 +272,17 @@ Or manually create `.env.docker` using the provided example or referring to Docs
 ---
 ### ⚙️ Setup  
   
-1. Ensure `.env` files are configured for Docker:  
+1. Ensure `.env.docker` files are configured for Docker:  
 - Use `postgres` as database host  
 - Use `redis` as Redis host  
+
+2.  Generate RSA Keys
+- Ensure the keys are present inside each service before running Docker.
+- Since private keys are not committed for security reasons, generate them locally before running:
   
-2. Run the following command:
+3. Run the following command:
 - For first time :-
-```
+```bash
 docker-compose up --build
 ```
 - Later :-
@@ -247,7 +296,7 @@ docker-compose up
 You MUST change it to:
 ```YAML
 env_file:  
-  - ./auth-service/.env.docker
+  - ./<service_name>/.env.docker
 ```
 
 ---  
@@ -281,16 +330,41 @@ docker-compose down
 - Refresh token validation via Redis
 - Token revocation using blacklist
 - Rate limiting to prevent abuse
+-  Public/private key-based JWT validation (RS256)
+- Audit logging for tracking API access
 
 ---
+## 📊 Audit Logging
 
+The system implements audit logging to track API access and actions.
+
+Each request logs:
+- Timestamp
+- HTTP method and endpoint
+- User ID (if authenticated)
+- Response status
+- Request duration
+- IP address
+
+Logs are emitted to **stdout**, making them compatible with Docker and production logging systems.
+
+This enables:
+- Monitoring system usage
+- Debugging issues
+- Security **auditing**
+
+---
 ## 🧠 Design Decisions
 
 ### PostgreSQL for RBAC  
 PostgreSQL was chosen due to the relational nature of RBAC, where users, roles, and permissions have many-to-many relationships. It ensures data integrity, efficient joins, and strong consistency.  
   
-### JWT for Authentication  
-JWT enables stateless authentication, allowing microservices to remain decoupled. Each service can validate requests without querying a central database.  
+### JWT with RS256 (Public/Private Key)
+JWT is used with RS256 algorithm:
+- Tokens are signed using a private key in the Auth Service
+- Other services verify using a public key
+- 
+This avoids sharing secrets across services and improves security in distributed microservice environments.
   
 ### Redis for Token Management & Rate Limiting  
 Redis is used for:  
@@ -313,7 +387,9 @@ The system is split into independent services (Auth, Orders, Gateway), each with
 - Rate limiting (Redis)
 - ABAC (ownership-based access)
 - Multi-role support
-- 
+-  Audit logging (API access tracking)
+- RS256 JWT validation (public/private key)
+
 ---
 ## 📡 API Endpoints
 
