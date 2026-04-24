@@ -1,6 +1,12 @@
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
 const redis = require("../utils/redis");
+const fs = require("fs");
+const path = require("path");
+
+const publicKey = fs.readFileSync(
+  path.join(__dirname, "../keys/public.key"),
+  "utf8"
+);
 
 exports.authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -22,7 +28,7 @@ exports.authenticate = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, publicKey, { algorithms: ["RS256"] });
     req.user = decoded; // attach user data
     next();
   } catch (err) {

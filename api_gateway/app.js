@@ -24,14 +24,19 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(globalLimiter);
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith("/auth/login")) {
+    return next();
+  }
+  globalLimiter(req, res, next);
+});
 
 const authLimiter = rateLimit({
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
   }),
   windowMs: 60 * 1000, //1 minute
-  max: 5,
+  max: 10,
   message: { message: "Too many login attempts, try later" },
 });
 

@@ -3,6 +3,17 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const redis = require("../utils/redis");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+
+const privateKey = fs.readFileSync(
+  path.join(__dirname, "../keys/private.key"),
+  "utf8"
+);
+const publicKey = fs.readFileSync(
+  path.join(__dirname, "../keys/public.key"),
+  "utf8"
+);
 
 require("dotenv").config();
 
@@ -57,16 +68,22 @@ exports.loginUser = async ({ email, password }) => {
       roles,
       permissions
     },
-    process.env.JWT_SECRET,
-    { expiresIn: "1h" }
+    privateKey,
+    {
+      algorithm: "RS256",
+      expiresIn: "15m"
+    }
   );
 
   const sessionId = crypto.randomUUID();
   // Refresh Token (long-lived)
   const refreshToken = jwt.sign(
     { userId: user.id, sessionId },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: "7d" }
+    privateKey,
+    {
+      algorithm: "RS256",
+      expiresIn: "7d"
+    }
   );
 
   const hashedToken = crypto
@@ -91,8 +108,8 @@ exports.logoutUser = async (accessToken, refreshToken) => {
     throw new Error("Tokens required");
   }
 
-  const decodedAccess = jwt.verify(accessToken, process.env.JWT_SECRET);
-  const decodedRefresh = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+  const decodedAccess = jwt.verify(accessToken, publicKey, { algorithms: ["RS256"] });
+  const decodedRefresh = jwt.verify(refreshToken, publicKey, { algorithms: ["RS256"] });
 
   if (decodedAccess.userId !== decodedRefresh.userId) {
     throw new Error("Token mismatch");
@@ -129,10 +146,7 @@ exports.refreshAccessToken = async (refreshToken) => {
   }
 
   // Verify refresh token
-  const decoded = jwt.verify(
-    refreshToken,
-    process.env.JWT_REFRESH_SECRET
-  );
+  const decoded = jwt.verify(refreshToken, publicKey, { algorithms: ["RS256"] });
 
   const { userId, sessionId } = decoded;
   // Check Redis
@@ -183,8 +197,11 @@ exports.refreshAccessToken = async (refreshToken) => {
       roles,
       permissions
     },
-    process.env.JWT_SECRET,
-    { expiresIn: "15m" }
+    privateKey,
+    {
+      algorithm: "RS256",
+      expiresIn: "15m"
+    }
   );
 
   return { accessToken };
